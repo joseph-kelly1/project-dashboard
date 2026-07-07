@@ -4,6 +4,7 @@ import { ErrorBanner, ProjectFields } from "@/components/forms";
 import { WindowSelector } from "@/components/window-selector";
 import { loadAll } from "@/lib/data";
 import {
+  categoryCostForWindow,
   computeCosts,
   costNote,
   fmtDate,
@@ -11,7 +12,7 @@ import {
   isRenewingSoon,
   nextRenewal,
   parseWindow,
-  projectMonthlyCost,
+  projectCostForWindow,
   revenueNote,
 } from "@/lib/money";
 import { computeRevenue } from "@/lib/stripe";
@@ -32,16 +33,13 @@ export default async function Dashboard({
 
   const { projects, servicesByProject, subscriptions, stripeAccounts } =
     await loadAll();
-  const costs = computeCosts(projects, servicesByProject, subscriptions);
+  const costs = computeCosts(projects, servicesByProject, subscriptions, now);
   const revenue = await computeRevenue(projects, stripeAccounts, win, now);
 
   // Single computation path: the total is the sum of the per-project window
   // figures, so the table always reconciles with the cards to the cent.
   const projectCost = new Map(
-    projects.map((p) => [
-      p.id,
-      projectMonthlyCost(costs.perProjectMonthly.get(p.id) ?? 0, win, now),
-    ]),
+    projects.map((p) => [p.id, projectCostForWindow(costs, p.id, win, now)]),
   );
   let totalCost = 0;
   for (const cents of projectCost.values()) totalCost += cents;
@@ -239,7 +237,7 @@ export default async function Dashboard({
             <tbody>
               {[...costs.categoryMonthly.entries()]
                 .sort((a, b) => b[1] - a[1])
-                .map(([category, monthly]) => (
+                .map(([category]) => (
                   <tr key={category}>
                     <td>
                       <span className="badge badge-category">
@@ -247,7 +245,7 @@ export default async function Dashboard({
                       </span>
                     </td>
                     <td className="num">
-                      {fmtUSD(projectMonthlyCost(monthly, win, now))}
+                      {fmtUSD(categoryCostForWindow(costs, category, win, now))}
                     </td>
                   </tr>
                 ))}

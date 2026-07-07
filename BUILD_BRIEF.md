@@ -89,7 +89,7 @@ Stored costs are recurring rates. Normalize every cost to a monthly figure first
 - `daily` = monthly ÷ 30 (use 30; document the choice)
 - `monthly` = monthly
 - `yearly` = monthly × 12
-- `ytd` = monthly × (number of months elapsed in the current calendar year, counting the current month)
+- `ytd` = computed **per cost item**: monthly × months billed so far this year, counting from that item's billing start (its `renewalDate` anchor, month-inclusive) — started in a past year → all elapsed months; starts later this year → 0; no anchor → all elapsed months. A flat months-elapsed factor would overstate costs that started mid-year. Shared subscriptions use the subscription's anchor for every slice, so slices × months still sum to the bill.
 - `all-time` = show the annualized (`yearly`) value with a small label noting it's annualized. Costs have no real "all-time" because they're rates, not history.
 
 Annual-cycle costs convert to monthly by ÷ 12 before projecting.

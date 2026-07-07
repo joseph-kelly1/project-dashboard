@@ -10,6 +10,7 @@ import {
   nextRenewal,
   projectMonthlyCost,
   windowStart,
+  ytdMonths,
 } from "./money";
 import type { Project, Service, SharedSubscription } from "./types";
 import { centsFromDollars, ValidationError } from "./validate";
@@ -172,6 +173,41 @@ assert.equal(
   windowStart("yearly", midYear)!.toISOString(),
   windowStart("ytd", midYear)!.toISOString(),
 );
+
+// --- ytd is per item, anchored at billing start (renewalDate) ---
+assert.equal(ytdMonths(null, midYear), 7); // no anchor → billed all year
+assert.equal(ytdMonths("2025-11-20", midYear), 7); // started last year → full
+assert.equal(ytdMonths("2026-05-15", midYear), 3); // May, Jun, Jul
+assert.equal(ytdMonths("2026-07-01", midYear), 1);
+assert.equal(ytdMonths("2026-09-01", midYear), 0); // hasn't started yet
+
+// $30/mo service started in May + $20/mo sub started in June split 2 ways
+report = computeCosts(
+  [p1, p2],
+  new Map([
+    [
+      "a",
+      [
+        {
+          ...service("s1", "a", { type: "specific", amountCents: 3000, cycle: "monthly" }),
+          renewalDate: "2026-05-15",
+        },
+        shared("s3", "a"),
+      ],
+    ],
+    ["b", [shared("s4", "b")]],
+  ]),
+  [{ ...railway, renewalDate: "2026-06-10" }],
+  midYear,
+);
+assert.equal(report.perProjectYtd.get("a"), 3000 * 3 + 1000 * 2);
+assert.equal(report.perProjectYtd.get("b"), 1000 * 2);
+// ties out against bills: 3000×3 + 2000×2
+assert.equal(
+  [...report.perProjectYtd.values()].reduce((x, y) => x + y, 0),
+  3000 * 3 + 2000 * 2,
+);
+assert.equal(report.categoryYtd.get("hosting"), 13000);
 
 // --- renewal anchors roll forward by cycle ---
 // now = 2026-07-06 (NY)

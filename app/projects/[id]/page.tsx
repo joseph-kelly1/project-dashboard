@@ -25,7 +25,7 @@ import {
   monthlyCents,
   nextRenewal,
   parseWindow,
-  projectMonthlyCost,
+  projectCostForWindow,
   revenueNote,
 } from "@/lib/money";
 import { computeRevenue } from "@/lib/stripe";
@@ -56,14 +56,10 @@ export default async function ProjectPage({
     services.find((s) => s.id === sp.service) ?? services[0] ?? null;
 
   // Splits and attribution depend on every project, so compute across all.
-  const costs = computeCosts(projects, servicesByProject, subscriptions);
+  const costs = computeCosts(projects, servicesByProject, subscriptions, now);
   const revenue = await computeRevenue(projects, stripeAccounts, win, now);
 
-  const cost = projectMonthlyCost(
-    costs.perProjectMonthly.get(id) ?? 0,
-    win,
-    now,
-  );
+  const cost = projectCostForWindow(costs, id, win, now);
   const rev = revenue.perProject.get(id) ?? { state: "untracked" as const };
   const profit = rev.state === "ok" ? rev.cents - cost : -cost;
   const subById = new Map(subscriptions.map((s) => [s.id, s]));
