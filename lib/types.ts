@@ -44,6 +44,13 @@ export type Cost =
   | { type: "specific"; amountCents: number; cycle: Cycle }
   | { type: "shared"; subscriptionId: string };
 
+// A dated note ("MS_SECRET expires"), not a cost — never enters money math.
+export interface Reminder {
+  id: string;
+  label: string;
+  date: string; // yyyy-mm-dd; stays visible (flagged overdue) until deleted
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -51,6 +58,7 @@ export interface Project {
   notes: string;
   stripeAccountId: string | null;
   revenueTag: string | null;
+  reminders?: Reminder[]; // optional: records predate the field
   createdAt: string;
 }
 

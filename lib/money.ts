@@ -38,6 +38,11 @@ export function nyMidnightUtc(y: number, m: number, d: number): Date {
   return new Date(guess + (asUtc.getTime() - asNy.getTime()));
 }
 
+export function todayNY(now = new Date()): string {
+  const { y, m, d } = nyParts(now);
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
 // Revenue window start (inclusive); null = all-time, no bound.
 export function windowStart(win: TimeWindow, now = new Date()): Date | null {
   const { y, m, d } = nyParts(now);

@@ -33,6 +33,7 @@ This app is relational data on a flat key-value store, so **you own all the rela
 - `url` — optional link to where the project itself is hosted/deployed
 - `stripeAccountId` — references a StripeAccount (many projects → one account). Optional (a project may have no revenue yet).
 - `revenueTag` — optional string. When a project *shares* a Stripe account with other projects, this is the metadata tag used to attribute payments to it (see Revenue attribution). Null when the project owns its account outright. **Required (validated on write) whenever two or more projects point at the same Stripe account.**
+- `reminders` — optional array of `{ id, label, date }` (e.g. "MS_SECRET expires"). Dated notes only — never part of cost math. Stored on the project JSON (no own key/index), preserved across settings saves, deleted with the project. A reminder stays listed (flagged overdue) until manually removed.
 - `createdAt`
 
 **Service** (the tabs inside a project)
@@ -150,8 +151,8 @@ All math is in integer cents (see above); format to dollars at render.
 
 Follow `DESIGN.md` for layout and styling. Functionally, three areas:
 
-1. **Home dashboard** — the time-window selector (drives everything on the page); global metric cards for total cost, total revenue, total profit; a per-project profit list/table; a spend-by-category breakdown; and a section for shared subscriptions showing each one's current per-project split live. Surface anything renewing in the next 30 days.
-2. **Project view** — project header with its own cost/revenue/profit for the selected window; service tabs, each showing the full service record (name, project-specific link, login method, category, status, billing cycle, renewal date, cost source, notes). CRUD for services here.
+1. **Home dashboard** — the time-window selector (drives everything on the page); global metric cards for total cost, total revenue, total profit; a per-project profit list/table; a spend-by-category breakdown; and a section for shared subscriptions showing each one's current per-project split live. Surface anything renewing in the next 30 days, plus project reminders due within 30 days or overdue, in one "coming up" table.
+2. **Project view** — project header with its own cost/revenue/profit for the selected window; service tabs, each showing the full service record (name, project-specific link, login method, category, status, billing cycle, renewal date, cost source, notes). CRUD for services here. A reminders section: dated notes (secret expiry, domain transfer…) with add/remove; overdue ones flagged until removed.
 3. **Shared subscriptions / general page** — CRUD for shared subscriptions; each shows which projects currently opt into it and the resulting per-project slice.
 
 Also need lightweight CRUD for **projects** and for **Stripe accounts** (accounts: label + secret key pasted directly into the form; afterwards the key shows only as its masked hint, replaceable but never re-displayed). Sentence case, plain-language labels per `DESIGN.md`.

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  addReminder,
   createService,
   removeProject,
+  removeReminder,
   removeService,
   updateProject,
   updateService,
@@ -27,6 +29,7 @@ import {
   parseWindow,
   projectCostForWindow,
   revenueNote,
+  todayNY,
 } from "@/lib/money";
 import { computeRevenue } from "@/lib/stripe";
 
@@ -64,6 +67,10 @@ export default async function ProjectPage({
   const profit = rev.state === "ok" ? rev.cents - cost : -cost;
   const subById = new Map(subscriptions.map((s) => [s.id, s]));
   const account = stripeAccounts.find((a) => a.id === project.stripeAccountId);
+  const today = todayNY(now);
+  const reminders = [...(project.reminders ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
 
   const tabParams: Record<string, string> = { window: win };
   if (selected) tabParams.service = selected.id;
@@ -270,6 +277,61 @@ export default async function ProjectPage({
             <div>
               <button className="btn" type="submit">
                 Add service
+              </button>
+            </div>
+          </form>
+        </details>
+      </section>
+
+      <section className="card section">
+        <h2>Reminders</h2>
+        {reminders.length === 0 ? (
+          <p className="empty">
+            No reminders yet — add anything with a deadline, like a secret
+            expiring or a domain transfer window.
+          </p>
+        ) : (
+          <table>
+            <tbody>
+              {reminders.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.label}</td>
+                  <td className={r.date < today ? "neg" : ""}>
+                    {fmtDate(r.date)}
+                    {r.date < today ? " — overdue" : ""}
+                  </td>
+                  <td className="num">
+                    <form action={removeReminder}>
+                      <input type="hidden" name="projectId" value={id} />
+                      <input type="hidden" name="id" value={r.id} />
+                      <DeleteButton
+                        label="Done"
+                        confirmText={`Remove reminder "${r.label}"?`}
+                      />
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <details>
+          <summary>Add a reminder</summary>
+          <form action={addReminder} className="stack details-body">
+            <input type="hidden" name="projectId" value={id} />
+            <div className="field-row">
+              <div className="field">
+                <label>What</label>
+                <input name="label" required placeholder="MS_SECRET expires" />
+              </div>
+              <div className="field">
+                <label>Date</label>
+                <input name="date" type="date" required />
+              </div>
+            </div>
+            <div>
+              <button className="btn" type="submit">
+                Add reminder
               </button>
             </div>
           </form>

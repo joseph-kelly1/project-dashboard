@@ -11,9 +11,11 @@ import {
   fmtUSD,
   isRenewingSoon,
   nextRenewal,
+  nyParts,
   parseWindow,
   projectCostForWindow,
   revenueNote,
+  todayNY,
 } from "@/lib/money";
 import { computeRevenue } from "@/lib/stripe";
 import type { Service } from "@/lib/types";
@@ -56,6 +58,13 @@ export default async function Dashboard({
     s.cost.type === "specific"
       ? s.cost.cycle
       : (subById.get(s.cost.subscriptionId)?.cycle ?? "monthly");
+  // Reminders join the renewals table: due within 30 days or overdue
+  // (overdue ones stay until deleted — an expired secret still needs action).
+  const today = todayNY(now);
+  const { y, m, d } = nyParts(now);
+  const soonLimit = new Date(Date.UTC(y, m - 1, d + 30))
+    .toISOString()
+    .slice(0, 10);
   const renewals = [
     ...subscriptions
       .filter(
@@ -67,6 +76,7 @@ export default async function Dashboard({
         name: s.name,
         context: "Shared subscription",
         date: nextRenewal(s.renewalDate!, s.cycle, now),
+        overdue: false,
       })),
     ...projects.flatMap((p) =>
       (servicesByProject.get(p.id) ?? [])
@@ -79,6 +89,17 @@ export default async function Dashboard({
           name: s.name,
           context: p.name,
           date: nextRenewal(s.renewalDate!, serviceCycle(s), now),
+          overdue: false,
+        })),
+    ),
+    ...projects.flatMap((p) =>
+      (p.reminders ?? [])
+        .filter((r) => r.date <= soonLimit)
+        .map((r) => ({
+          name: r.label,
+          context: p.name,
+          date: r.date,
+          overdue: r.date < today,
         })),
     ),
   ].sort((a, b) => a.date.localeCompare(b.date));
@@ -295,7 +316,7 @@ export default async function Dashboard({
 
       {renewals.length > 0 && (
         <section className="card section">
-          <h2>Renewing in the next 30 days</h2>
+          <h2>Coming up in the next 30 days</h2>
           <table>
             <thead>
               <tr>
@@ -309,7 +330,10 @@ export default async function Dashboard({
                 <tr key={i}>
                   <td>{r.name}</td>
                   <td className="muted">{r.context}</td>
-                  <td>{fmtDate(r.date)}</td>
+                  <td className={r.overdue ? "neg" : ""}>
+                    {fmtDate(r.date)}
+                    {r.overdue ? " — overdue" : ""}
+                  </td>
                 </tr>
               ))}
             </tbody>

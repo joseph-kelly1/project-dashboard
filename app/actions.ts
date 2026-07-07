@@ -80,7 +80,9 @@ async function assertRevenueTagRule(candidate: Project): Promise<void> {
     );
 }
 
-async function projectFromForm(fd: FormData, id: string, createdAt: string) {
+// The form carries only the editable fields; reminders/createdAt come from
+// the existing record so a settings save never drops them.
+async function projectFromForm(fd: FormData, id: string, existing?: Project) {
   const stripeAccountId = optStr(fd.get("stripeAccountId"), "Stripe account", 100) || null;
   if (stripeAccountId && !(await getStripeAccount(stripeAccountId)))
     throw new ValidationError("That Stripe account no longer exists");
@@ -91,7 +93,8 @@ async function projectFromForm(fd: FormData, id: string, createdAt: string) {
     notes: optStr(fd.get("notes"), "Notes"),
     stripeAccountId,
     revenueTag: optStr(fd.get("revenueTag"), "Revenue tag", 100) || null,
-    createdAt,
+    reminders: existing?.reminders ?? [],
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
   };
   await assertRevenueTagRule(p);
   return p;
@@ -99,8 +102,7 @@ async function projectFromForm(fd: FormData, id: string, createdAt: string) {
 
 export async function createProject(fd: FormData): Promise<void> {
   await run("/", async () => {
-    const p = await projectFromForm(fd, crypto.randomUUID(), new Date().toISOString());
-    await saveProject(p);
+    await saveProject(await projectFromForm(fd, crypto.randomUUID()));
   });
 }
 
@@ -109,7 +111,37 @@ export async function updateProject(fd: FormData): Promise<void> {
   await run(`/projects/${id}`, async () => {
     const existing = await getProject(id);
     if (!existing) throw new ValidationError("Project not found");
-    await saveProject(await projectFromForm(fd, id, existing.createdAt));
+    await saveProject(await projectFromForm(fd, id, existing));
+  });
+}
+
+export async function addReminder(fd: FormData): Promise<void> {
+  const projectId = reqStr(fd.get("projectId"), "Project id", 100);
+  await run(`/projects/${projectId}`, async () => {
+    const project = await getProject(projectId);
+    if (!project) throw new ValidationError("Project not found");
+    const date = optIsoDate(fd.get("date"), "Date");
+    if (!date) throw new ValidationError("Date is required");
+    await saveProject({
+      ...project,
+      reminders: [
+        ...(project.reminders ?? []),
+        { id: crypto.randomUUID(), label: reqStr(fd.get("label"), "Reminder"), date },
+      ],
+    });
+  });
+}
+
+export async function removeReminder(fd: FormData): Promise<void> {
+  const projectId = reqStr(fd.get("projectId"), "Project id", 100);
+  await run(`/projects/${projectId}`, async () => {
+    const project = await getProject(projectId);
+    if (!project) return;
+    const id = reqStr(fd.get("id"), "Reminder id", 100);
+    await saveProject({
+      ...project,
+      reminders: (project.reminders ?? []).filter((r) => r.id !== id),
+    });
   });
 }
 
