@@ -58,6 +58,7 @@ export interface Service {
   id: string;
   projectId: string;
   name: string;
+  sortOrder: number; // tab position, drag-to-reorder; older records may lack it
   url: string;
   loginMethod: LoginMethod;
   loginOther: string;

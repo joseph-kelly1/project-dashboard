@@ -5,7 +5,9 @@ process.env.ENCRYPTION_SECRET = "test-secret";
 import { decrypt, encrypt, keyHint } from "./crypto";
 import {
   computeCosts,
+  isRenewingSoon,
   monthlyCents,
+  nextRenewal,
   projectMonthlyCost,
   windowStart,
 } from "./money";
@@ -31,6 +33,7 @@ const service = (
   id,
   projectId,
   name: id,
+  sortOrder: 0,
   url: "",
   loginMethod: "github",
   loginOther: "",
@@ -169,6 +172,20 @@ assert.equal(
   windowStart("yearly", midYear)!.toISOString(),
   windowStart("ytd", midYear)!.toISOString(),
 );
+
+// --- renewal anchors roll forward by cycle ---
+// now = 2026-07-06 (NY)
+assert.equal(nextRenewal("2026-05-15", "monthly", midYear), "2026-07-15");
+assert.equal(nextRenewal("2026-07-01", "monthly", midYear), "2026-08-01");
+assert.equal(nextRenewal("2026-07-06", "monthly", midYear), "2026-07-06"); // today counts
+assert.equal(nextRenewal("2025-03-10", "annual", midYear), "2027-03-10");
+assert.equal(nextRenewal("2026-12-25", "annual", midYear), "2026-12-25"); // future anchor unchanged
+// day-of-month clamps in short months without drifting
+const endOfJan = new Date("2026-02-05T12:00:00-05:00");
+assert.equal(nextRenewal("2026-01-31", "monthly", endOfJan), "2026-02-28");
+assert.equal(isRenewingSoon("2026-05-15", "monthly", midYear), true); // past anchor rolls forward
+assert.equal(isRenewingSoon("2025-09-01", "annual", midYear), false); // next is ~2 months out
+assert.equal(isRenewingSoon(null, "monthly", midYear), false);
 
 // --- dollars → cents parsing ---
 assert.equal(centsFromDollars("12.5", "x"), 1250);

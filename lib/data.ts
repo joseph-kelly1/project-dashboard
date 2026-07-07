@@ -41,7 +41,11 @@ export async function saveProject(p: Project): Promise<void> {
 export async function listServices(projectId: string): Promise<Service[]> {
   const ids = await redis().smembers(`project:${projectId}:services`);
   const services = await mgetJson<Service>(ids.map((id) => `service:${id}`));
-  return services.sort((a, b) => a.name.localeCompare(b.name));
+  return services.sort(
+    (a, b) =>
+      (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+      a.name.localeCompare(b.name),
+  );
 }
 
 export async function getService(id: string): Promise<Service | null> {

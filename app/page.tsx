@@ -9,11 +9,13 @@ import {
   fmtDate,
   fmtUSD,
   isRenewingSoon,
+  nextRenewal,
   parseWindow,
   projectMonthlyCost,
   revenueNote,
 } from "@/lib/money";
 import { computeRevenue } from "@/lib/stripe";
+import type { Service } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -49,14 +51,37 @@ export default async function Dashboard({
   const totalProfit = revenue.totalCents - totalCost;
 
   const projectName = new Map(projects.map((p) => [p.id, p.name]));
+  const subById = new Map(subscriptions.map((s) => [s.id, s]));
+  // Renewal anchors roll forward by billing cycle; shared-cost services take
+  // their subscription's cycle.
+  const serviceCycle = (s: Service) =>
+    s.cost.type === "specific"
+      ? s.cost.cycle
+      : (subById.get(s.cost.subscriptionId)?.cycle ?? "monthly");
   const renewals = [
     ...subscriptions
-      .filter((s) => s.status === "active" && isRenewingSoon(s.renewalDate, now))
-      .map((s) => ({ name: s.name, context: "Shared subscription", date: s.renewalDate! })),
+      .filter(
+        (s) =>
+          s.status === "active" &&
+          isRenewingSoon(s.renewalDate, s.cycle, now),
+      )
+      .map((s) => ({
+        name: s.name,
+        context: "Shared subscription",
+        date: nextRenewal(s.renewalDate!, s.cycle, now),
+      })),
     ...projects.flatMap((p) =>
       (servicesByProject.get(p.id) ?? [])
-        .filter((s) => s.status === "active" && isRenewingSoon(s.renewalDate, now))
-        .map((s) => ({ name: s.name, context: p.name, date: s.renewalDate! })),
+        .filter(
+          (s) =>
+            s.status === "active" &&
+            isRenewingSoon(s.renewalDate, serviceCycle(s), now),
+        )
+        .map((s) => ({
+          name: s.name,
+          context: p.name,
+          date: nextRenewal(s.renewalDate!, serviceCycle(s), now),
+        })),
     ),
   ].sort((a, b) => a.date.localeCompare(b.date));
 

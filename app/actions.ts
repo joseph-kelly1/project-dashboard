@@ -14,6 +14,7 @@ import {
   getStripeAccount,
   getSubscription,
   listProjects,
+  listServices,
   loadAll,
   saveProject,
   saveService,
@@ -134,11 +135,17 @@ async function costFromForm(fd: FormData): Promise<Cost> {
   return { type, subscriptionId };
 }
 
-async function serviceFromForm(fd: FormData, id: string, projectId: string) {
+async function serviceFromForm(
+  fd: FormData,
+  id: string,
+  projectId: string,
+  sortOrder: number,
+) {
   const loginMethod = oneOf(fd.get("loginMethod"), LOGIN_METHODS, "Login method");
   return {
     id,
     projectId,
+    sortOrder,
     name: reqStr(fd.get("name"), "Name"),
     url: optUrl(fd.get("url"), "Link"),
     loginMethod,
@@ -156,7 +163,12 @@ export async function createService(fd: FormData): Promise<void> {
   await run(`/projects/${projectId}`, async () => {
     if (!(await getProject(projectId)))
       throw new ValidationError("Project not found");
-    await saveService(await serviceFromForm(fd, crypto.randomUUID(), projectId));
+    const existing = await listServices(projectId);
+    const nextOrder =
+      existing.reduce((max, s) => Math.max(max, s.sortOrder ?? 0), -1) + 1;
+    await saveService(
+      await serviceFromForm(fd, crypto.randomUUID(), projectId, nextOrder),
+    );
   });
 }
 
@@ -166,8 +178,28 @@ export async function updateService(fd: FormData): Promise<void> {
   const returnPath = existing ? `/projects/${existing.projectId}` : "/";
   await run(returnPath, async () => {
     if (!existing) throw new ValidationError("Service not found");
-    await saveService(await serviceFromForm(fd, id, existing.projectId));
+    await saveService(
+      await serviceFromForm(fd, id, existing.projectId, existing.sortOrder ?? 0),
+    );
   });
+}
+
+// Called directly from the drag-and-drop tabs (not a form). Persists the
+// dropped order as sortOrder = array index; ids not in the project ignored.
+export async function reorderServices(
+  projectId: string,
+  orderedIds: string[],
+): Promise<void> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  const services = await listServices(projectId);
+  const byId = new Map(services.map((s) => [s.id, s]));
+  let index = 0;
+  for (const id of orderedIds) {
+    const svc = byId.get(id);
+    if (svc) await saveService({ ...svc, sortOrder: index++ });
+  }
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function removeService(fd: FormData): Promise<void> {

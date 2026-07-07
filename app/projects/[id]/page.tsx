@@ -8,6 +8,7 @@ import {
   updateService,
 } from "@/app/actions";
 import { DeleteButton } from "@/components/delete-button";
+import { ServiceTabs } from "@/components/service-tabs";
 import {
   ErrorBanner,
   ProjectFields,
@@ -22,6 +23,7 @@ import {
   fmtDate,
   fmtUSD,
   monthlyCents,
+  nextRenewal,
   parseWindow,
   projectMonthlyCost,
   revenueNote,
@@ -157,18 +159,12 @@ export default async function ProjectPage({
           </p>
         ) : (
           <>
-            <div className="tabs">
-              {services.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/projects/${id}?window=${win}&service=${s.id}`}
-                  scroll={false}
-                  aria-current={selected?.id === s.id ? "true" : undefined}
-                >
-                  {s.name}
-                </Link>
-              ))}
-            </div>
+            <ServiceTabs
+              projectId={id}
+              services={services.map((s) => ({ id: s.id, name: s.name }))}
+              selectedId={selected?.id ?? null}
+              win={win}
+            />
             {selected && (
               <div className="section" key={selected.id}>
                 <div className="row">
@@ -221,18 +217,25 @@ export default async function ProjectPage({
                       <td>
                         {(() => {
                           // Shared costs inherit the subscription's renewal
-                          // date live unless the service sets its own.
-                          const inherited =
-                            selected.cost.type === "shared" &&
-                            !selected.renewalDate
-                              ? (subById.get(selected.cost.subscriptionId)
-                                  ?.renewalDate ?? null)
-                              : null;
+                          // date live unless the service sets its own; the
+                          // anchor rolls forward to the next occurrence.
+                          const sub =
+                            selected.cost.type === "shared"
+                              ? subById.get(selected.cost.subscriptionId)
+                              : undefined;
+                          const inherited = !selected.renewalDate
+                            ? (sub?.renewalDate ?? null)
+                            : null;
                           const date = selected.renewalDate ?? inherited;
                           if (!date) return "—";
+                          const cycle =
+                            selected.cost.type === "specific"
+                              ? selected.cost.cycle
+                              : (sub?.cycle ?? "monthly");
+                          const next = fmtDate(nextRenewal(date, cycle));
                           return inherited
-                            ? `${fmtDate(date)} (from subscription)`
-                            : fmtDate(date);
+                            ? `${next} (from subscription)`
+                            : next;
                         })()}
                       </td>
                     </tr>

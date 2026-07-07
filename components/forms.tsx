@@ -136,7 +136,8 @@ export function ServiceFields({
         </div>
         <div className="field">
           <label>
-            Renewal date (optional — shared costs inherit the subscription’s)
+            First renewal date (optional — rolls forward each cycle; shared
+            costs inherit the subscription’s)
           </label>
           <input
             name="renewalDate"
@@ -248,7 +249,7 @@ export function SubscriptionFields({ sub }: { sub?: SharedSubscription }) {
           </select>
         </div>
         <div className="field">
-          <label>Renewal date (optional)</label>
+          <label>First renewal date (optional — rolls forward each cycle)</label>
           <input name="renewalDate" type="date" defaultValue={sub?.renewalDate ?? ""} />
         </div>
       </div>

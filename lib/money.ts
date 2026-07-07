@@ -214,12 +214,48 @@ export function fmtDate(iso: string): string {
   return dateFmt.format(new Date(`${iso}T00:00:00Z`));
 }
 
-// Renewal dates (yyyy-mm-dd) within the next 30 days, NY calendar.
-export function isRenewingSoon(renewalDate: string | null, now = new Date()): boolean {
-  if (!renewalDate) return false;
+// renewalDate is an ANCHOR (first/any known renewal), not a one-shot: the
+// next occurrence is rolled forward by the billing cycle automatically.
+// Day-of-month is kept and clamped to short months (Jan 31 → Feb 28 → Mar 31).
+export function nextRenewal(
+  anchor: string,
+  cycle: Cycle,
+  now = new Date(),
+): string {
   const { y, m, d } = nyParts(now);
-  const today = new Date(Date.UTC(y, m - 1, d));
-  const limit = new Date(Date.UTC(y, m - 1, d + 30));
-  const date = new Date(`${renewalDate}T00:00:00Z`);
-  return date >= today && date <= limit;
+  const today = Date.UTC(y, m - 1, d);
+  const [ay, am, ad] = anchor.split("-").map(Number);
+  const clamped = (yy: number, mm: number) => {
+    const lastDay = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+    return Date.UTC(yy, mm - 1, Math.min(ad, lastDay));
+  };
+  let yy = ay;
+  let mm = am;
+  let t = clamped(yy, mm);
+  while (t < today) {
+    if (cycle === "monthly") {
+      mm++;
+      if (mm > 12) {
+        mm = 1;
+        yy++;
+      }
+    } else {
+      yy++;
+    }
+    t = clamped(yy, mm);
+  }
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+// Next occurrence within the next 30 days, NY calendar. Note: an active
+// monthly item is always renewing within 30 days by definition.
+export function isRenewingSoon(
+  anchor: string | null,
+  cycle: Cycle,
+  now = new Date(),
+): boolean {
+  if (!anchor) return false;
+  const { y, m, d } = nyParts(now);
+  const limit = new Date(Date.UTC(y, m - 1, d + 30)).toISOString().slice(0, 10);
+  return nextRenewal(anchor, cycle, now) <= limit;
 }

@@ -37,12 +37,13 @@ This app is relational data on a flat key-value store, so **you own all the rela
 
 **Service** (the tabs inside a project)
 - `id`, `projectId`, `name`
+- `sortOrder` — integer tab position; tabs are drag-to-reorder, new services append at the end
 - `url` — links to this project's own dashboard for that service. **Always project-specific, even when the cost comes from a shared subscription.** The link and the cost are fully decoupled.
 - `loginMethod` — one of `google` | `github` | `other`
 - `loginOther` — free text, used only when `loginMethod === 'other'`
 - `category` — one of `hosting` | `database` | `auth` | `email` | `backend` | `ai` | `analytics` | `domain` | `other`
 - `status` — one of `active` | `paused` | `cancelled`. Paused/cancelled services are excluded from all cost totals but stay on record.
-- `renewalDate` — optional ISO date. A service with a shared cost and no own renewal date inherits the subscription's renewal date, derived live at read time (never copied/stored).
+- `renewalDate` — optional ISO date, treated as an **anchor**: the next renewal is rolled forward by the billing cycle automatically (day-of-month clamped in short months), so a first-payment date from months ago still surfaces upcoming renewals. A service with a shared cost and no own renewal date inherits the subscription's renewal date and cycle, derived live at read time (never copied/stored).
 - `cost` — a tagged union:
   - `{ type: 'specific', amount: number, cycle: 'monthly' | 'annual' }` — a cost this service alone bears
   - `{ type: 'shared', subscriptionId: string }` — this service draws its cost as a split slice of a SharedSubscription. Carries **no amount of its own**; the amount is derived.

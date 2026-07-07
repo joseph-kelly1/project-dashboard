@@ -11,7 +11,7 @@ import {
   SubscriptionFields,
 } from "@/components/forms";
 import { loadAll } from "@/lib/data";
-import { computeCosts, fmtDate, fmtUSD } from "@/lib/money";
+import { computeCosts, fmtDate, fmtUSD, nextRenewal } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,9 @@ export default async function SubscriptionsPage({
             <p className="muted">
               {fmtUSD(sub.amountCents)} {sub.cycle}
               {split ? ` · ${fmtUSD(split.monthly)}/mo normalized` : ""}
-              {sub.renewalDate ? ` · renews ${fmtDate(sub.renewalDate)}` : ""}
+              {sub.renewalDate
+                ? ` · renews ${fmtDate(nextRenewal(sub.renewalDate, sub.cycle))}`
+                : ""}
               {sub.url && (
                 <>
                   {" · "}
