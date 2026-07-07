@@ -137,6 +137,19 @@ export default async function Dashboard({
                   <tr key={p.id}>
                     <td>
                       <Link href={`/projects/${p.id}`}>{p.name}</Link>
+                      {p.url && (
+                        <>
+                          {" "}
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={p.url}
+                          >
+                            ↗
+                          </a>
+                        </>
+                      )}
                     </td>
                     <td className="num">{fmtUSD(cost)}</td>
                     <td className="num">

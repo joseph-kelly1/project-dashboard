@@ -15,6 +15,7 @@ import { centsFromDollars, ValidationError } from "./validate";
 const project = (id: string): Project => ({
   id,
   name: id,
+  url: "",
   notes: "",
   stripeAccountId: null,
   revenueTag: null,

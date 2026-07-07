@@ -38,36 +38,127 @@ are all managed inside the app.
 
 ## 4. Find your numeric GitHub ID
 
-Open `https://api.github.com/users/<your-username>` and copy the `"id"`
-number. That is `ALLOWED_GITHUB_ID`. Only this identity can ever sign in —
-it matches the numeric ID, not the username.
+Sign-in is locked to one GitHub account, matched by **numeric user ID** —
+not username, because usernames can be changed or released and reclaimed by
+someone else. The numeric ID is permanent for the life of the account.
+
+Any of these gets you the number:
+
+- **API (easiest):** open
+  `https://api.github.com/users/<your-username>` in a browser. The JSON
+  response has an `"id"` field near the top, e.g.
+
+  ```json
+  {
+    "login": "your-username",
+    "id": 4830382,
+    ...
+  }
+  ```
+
+  `4830382` is the value you want.
+
+- **gh CLI:** `gh api user --jq .id` (prints the number for the logged-in
+  account).
+
+- **Avatar URL:** on any GitHub page while signed in, your avatar image URL
+  looks like `https://avatars.githubusercontent.com/u/4830382?v=4` — the
+  number after `/u/` is your ID.
+
+Set `ALLOWED_GITHUB_ID` to exactly that number (digits only, no quotes).
+The `signIn` callback compares it to the ID GitHub returns during OAuth and
+refuses to create a session for anything else — other users see a failed
+sign-in, never the app.
+
+Double-check the value: if it's wrong (or empty), **nobody** can sign in,
+including you. The lock fails closed by design.
 
 ## 5. Set the environment variables
 
-In Vercel: **Project → Settings → Environment Variables** (Production +
-Preview + Development as you like). Matching `.env.example`:
+### 5a. Generate the two secrets
 
-| Variable | Value | Source |
+On your Mac, run each of these once in a terminal and save both outputs in
+your password manager before pasting them anywhere:
+
+```bash
+openssl rand -base64 32   # → AUTH_SECRET
+openssl rand -base64 32   # → ENCRYPTION_SECRET  (run it a second time — do NOT reuse the same value)
+```
+
+Each prints a 44-character random string like
+`Xk3jP9mQ2vL8nR5tYw7zA1bC4dE6fG0hI2jK4lM6nO8=`. They have different jobs:
+
+- **`AUTH_SECRET`** — signs/encrypts your session cookie (Auth.js). If it
+  leaks, someone could forge a session; if you rotate it, you just get
+  signed out and sign back in. Low-stakes to rotate.
+- **`ENCRYPTION_SECRET`** — encrypts the Stripe secret keys you save in the
+  app (AES-256-GCM) before they're written to Redis. If you rotate or lose
+  it, every stored Stripe key becomes permanently undecryptable and the app
+  will show each account's revenue as "unavailable" until you re-paste the
+  keys in **Stripe accounts → Edit**. Data isn't lost — only the keys need
+  re-entering — but treat this one as precious.
+
+(No `openssl`? Equivalent: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.)
+
+### 5b. Enter them in Vercel
+
+Vercel dashboard → your project → **Settings** (top tab) → **Environment
+Variables** (left sidebar). For each variable below: paste the **Key** and
+**Value**, tick **Production** (also tick Preview/Development only if you'll
+use Vercel preview deploys — local dev uses `.env.local` instead), then
+**Save**.
+
+| Key | Value | Where it came from |
 |---|---|---|
-| `KV_REST_API_URL` | (auto) | step 2 — injected by the Upstash integration |
-| `KV_REST_API_TOKEN` | (auto) | step 2 — injected by the Upstash integration |
-| `AUTH_SECRET` | random string | run `openssl rand -base64 32` |
-| `AUTH_GITHUB_ID` | client ID | step 3 |
-| `AUTH_GITHUB_SECRET` | client secret | step 3 |
-| `ALLOWED_GITHUB_ID` | your numeric ID | step 4 |
-| `ENCRYPTION_SECRET` | random string | run `openssl rand -base64 32` |
+| `AUTH_SECRET` | first generated string | step 5a |
+| `AUTH_GITHUB_ID` | OAuth app Client ID (e.g. `Ov23liAbCdEf...`) | step 3 |
+| `AUTH_GITHUB_SECRET` | OAuth app client secret (shown once when generated) | step 3 |
+| `ALLOWED_GITHUB_ID` | your numeric ID, digits only (e.g. `4830382`) | step 4 |
+| `ENCRYPTION_SECRET` | second generated string | step 5a |
 
-`AUTH_URL` is not needed on Vercel (inferred). For local dev, `.env.local`
-needs all of the above; add `AUTH_URL=http://localhost:3000` only if sign-in
-misbehaves locally.
+Do **not** add `KV_REST_API_URL` / `KV_REST_API_TOKEN` by hand — the Upstash
+Marketplace integration from step 2 injects them automatically (you'll see
+them already listed on this same page, managed by the integration).
 
-**`ENCRYPTION_SECRET` warning:** it encrypts the Stripe keys you save in the
-app. If you ever change it, every saved Stripe key becomes unreadable and
-must be re-entered in the app. Store it somewhere safe; never rotate it
-casually.
+`AUTH_URL` is deliberately absent: on Vercel, Auth.js infers the deployment
+URL by itself.
+
+Pitfalls:
+
+- Env vars only apply to deployments made **after** saving them — step 6
+  (redeploy) is mandatory, not optional.
+- No quotes around values; Vercel stores the raw string. A trailing space
+  or newline pasted by accident will break auth in confusing ways.
+- If the GitHub client secret is lost, generate a new one in the OAuth app
+  and update `AUTH_GITHUB_SECRET` — the old one stops working immediately.
+
+### 5c. Local development (`.env.local`)
+
+For running `npm run dev` locally, create `.env.local` in the repo root
+(never committed — it's gitignored):
+
+```bash
+cp .env.example .env.local
+```
+
+Then fill in every value:
+
+- `KV_REST_API_URL` / `KV_REST_API_TOKEN` — Upstash console → your database
+  → **REST API** section → copy `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN` values. Note: local dev talks to the **same
+  Redis** as production — there is no separate staging store. Fine for a
+  personal tool; just remember edits made locally are real.
+- `AUTH_SECRET` / `ENCRYPTION_SECRET` — reuse the same values as production
+  (required for `ENCRYPTION_SECRET`, or locally-saved Stripe keys and
+  production-saved ones can't decrypt each other's data).
+- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — from the **second** OAuth app
+  (the localhost one, step 3.5), not the production app.
+- `ALLOWED_GITHUB_ID` — same number as production.
+- `AUTH_URL=http://localhost:3000` — add this line only if local sign-in
+  redirects misbehave; usually unnecessary.
 
 This is the complete, permanent set. Adding Stripe accounts later requires
-**no** new env vars.
+**no** new env vars — keys go in through the app UI.
 
 ## 6. Redeploy
 

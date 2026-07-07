@@ -86,6 +86,7 @@ async function projectFromForm(fd: FormData, id: string, createdAt: string) {
   const p: Project = {
     id,
     name: reqStr(fd.get("name"), "Name"),
+    url: optUrl(fd.get("url"), "Link"),
     notes: optStr(fd.get("notes"), "Notes"),
     stripeAccountId,
     revenueTag: optStr(fd.get("revenueTag"), "Revenue tag", 100) || null,

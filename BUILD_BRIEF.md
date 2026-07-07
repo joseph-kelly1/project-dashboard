@@ -30,6 +30,7 @@ This app is relational data on a flat key-value store, so **you own all the rela
 
 **Project**
 - `id`, `name`, `notes`
+- `url` — optional link to where the project itself is hosted/deployed
 - `stripeAccountId` — references a StripeAccount (many projects → one account). Optional (a project may have no revenue yet).
 - `revenueTag` — optional string. When a project *shares* a Stripe account with other projects, this is the metadata tag used to attribute payments to it (see Revenue attribution). Null when the project owns its account outright. **Required (validated on write) whenever two or more projects point at the same Stripe account.**
 - `createdAt`
@@ -41,7 +42,7 @@ This app is relational data on a flat key-value store, so **you own all the rela
 - `loginOther` — free text, used only when `loginMethod === 'other'`
 - `category` — one of `hosting` | `database` | `auth` | `email` | `ai` | `analytics` | `domain` | `other`
 - `status` — one of `active` | `paused` | `cancelled`. Paused/cancelled services are excluded from all cost totals but stay on record.
-- `renewalDate` — optional ISO date
+- `renewalDate` — optional ISO date. A service with a shared cost and no own renewal date inherits the subscription's renewal date, derived live at read time (never copied/stored).
 - `cost` — a tagged union:
   - `{ type: 'specific', amount: number, cycle: 'monthly' | 'annual' }` — a cost this service alone bears
   - `{ type: 'shared', subscriptionId: string }` — this service draws its cost as a split slice of a SharedSubscription. Carries **no amount of its own**; the amount is derived.

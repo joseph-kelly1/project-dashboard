@@ -38,6 +38,15 @@ export function ProjectFields({
           />
         </div>
         <div className="field">
+          <label>Link (where it’s hosted, optional)</label>
+          <input
+            name="url"
+            type="url"
+            defaultValue={project?.url}
+            placeholder="https://…"
+          />
+        </div>
+        <div className="field">
           <label>Stripe account (optional)</label>
           <select name="stripeAccountId" defaultValue={project?.stripeAccountId ?? ""}>
             <option value="">None — revenue not tracked</option>
@@ -126,7 +135,9 @@ export function ServiceFields({
           <input name="loginOther" defaultValue={service?.loginOther} />
         </div>
         <div className="field">
-          <label>Renewal date (optional)</label>
+          <label>
+            Renewal date (optional — shared costs inherit the subscription’s)
+          </label>
           <input
             name="renewalDate"
             type="date"

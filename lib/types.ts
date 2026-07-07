@@ -45,6 +45,7 @@ export type Cost =
 export interface Project {
   id: string;
   name: string;
+  url: string; // where the project itself is hosted, "" if nowhere yet
   notes: string;
   stripeAccountId: string | null;
   revenueTag: string | null;

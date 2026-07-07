@@ -27,6 +27,7 @@ export function WindowSelector({
           <Link
             key={w}
             href={`${basePath}?${q}`}
+            scroll={false}
             aria-current={w === current ? "true" : undefined}
           >
             {LABELS[w]}

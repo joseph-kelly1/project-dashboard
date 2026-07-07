@@ -64,7 +64,7 @@ export default async function ProjectPage({
   );
   const rev = revenue.perProject.get(id) ?? { state: "untracked" as const };
   const profit = rev.state === "ok" ? rev.cents - cost : -cost;
-  const subName = new Map(subscriptions.map((s) => [s.id, s.name]));
+  const subById = new Map(subscriptions.map((s) => [s.id, s]));
   const account = stripeAccounts.find((a) => a.id === project.stripeAccountId);
 
   const tabParams: Record<string, string> = { window: win };
@@ -77,7 +77,22 @@ export default async function ProjectPage({
           <p className="muted">
             <Link href="/">Dashboard</Link> / {project.name}
           </p>
-          <h1>{project.name}</h1>
+          <h1>
+            {project.name}
+            {project.url && (
+              <>
+                {" "}
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 14, fontWeight: 500 }}
+                >
+                  {project.url.replace(/^https?:\/\//, "").replace(/\/$/, "")} ↗
+                </a>
+              </>
+            )}
+          </h1>
           {project.notes && <p className="muted">{project.notes}</p>}
           <p className="muted">
             {account
@@ -135,6 +150,7 @@ export default async function ProjectPage({
                 <Link
                   key={s.id}
                   href={`/projects/${id}?window=${win}&service=${s.id}`}
+                  scroll={false}
                   aria-current={selected?.id === s.id ? "true" : undefined}
                 >
                   {s.name}
@@ -185,15 +201,27 @@ export default async function ProjectPage({
                       <td>
                         {selected.cost.type === "specific"
                           ? `${fmtUSD(selected.cost.amountCents)} ${selected.cost.cycle} (${fmtUSD(monthlyCents(selected.cost.amountCents, selected.cost.cycle))}/mo)`
-                          : `Shared slice of “${subName.get(selected.cost.subscriptionId) ?? "unknown"}”`}
+                          : `Shared slice of “${subById.get(selected.cost.subscriptionId)?.name ?? "unknown"}”`}
                       </td>
                     </tr>
                     <tr>
                       <td className="muted">Renewal</td>
                       <td>
-                        {selected.renewalDate
-                          ? fmtDate(selected.renewalDate)
-                          : "—"}
+                        {(() => {
+                          // Shared costs inherit the subscription's renewal
+                          // date live unless the service sets its own.
+                          const inherited =
+                            selected.cost.type === "shared" &&
+                            !selected.renewalDate
+                              ? (subById.get(selected.cost.subscriptionId)
+                                  ?.renewalDate ?? null)
+                              : null;
+                          const date = selected.renewalDate ?? inherited;
+                          if (!date) return "—";
+                          return inherited
+                            ? `${fmtDate(date)} (from subscription)`
+                            : fmtDate(date);
+                        })()}
                       </td>
                     </tr>
                     {selected.notes && (
