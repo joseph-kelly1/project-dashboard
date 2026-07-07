@@ -1,0 +1,25 @@
+{
+  "name": "project-ledger",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "tsx lib/money.test.ts"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.35.0",
+    "next": "^15.3.0",
+    "next-auth": "^5.0.0-beta.28",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "stripe": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
