@@ -4,6 +4,7 @@ process.env.ENCRYPTION_SECRET = "test-secret";
 
 import { decrypt, encrypt, keyHint } from "./crypto";
 import {
+  allTimeMonths,
   computeCosts,
   isRenewingSoon,
   monthlyCents,
@@ -208,6 +209,18 @@ assert.equal(
   3000 * 3 + 2000 * 2,
 );
 assert.equal(report.categoryYtd.get("hosting"), 13000);
+
+// --- all-time is also per item, months since billing start across years ---
+assert.equal(allTimeMonths(null, midYear), 12); // unknown start → annualized
+assert.equal(allTimeMonths("2025-11-20", midYear), 9); // Nov 2025 – Jul 2026
+assert.equal(allTimeMonths("2026-05-15", midYear), 3);
+assert.equal(allTimeMonths("2026-07-06", midYear), 1);
+assert.equal(allTimeMonths("2026-09-01", midYear), 0); // hasn't started
+assert.equal(allTimeMonths("2024-07-01", midYear), 25); // two years + this month
+// same fixture as the ytd block: anchors are this year, so all-time == ytd
+assert.equal(report.perProjectAllTime.get("a"), 3000 * 3 + 1000 * 2);
+assert.equal(report.perProjectAllTime.get("b"), 1000 * 2);
+assert.equal(report.categoryAllTime.get("hosting"), 13000);
 
 // --- renewal anchors roll forward by cycle ---
 // now = 2026-07-06 (NY)

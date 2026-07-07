@@ -89,6 +89,19 @@ export function ytdMonths(
   return Math.max(0, m - am + 1);
 }
 
+// Months this cost has been billed in total, from its anchor month through
+// the current month (inclusive), across years. No anchor → unknown start,
+// fall back to 12 (annualized, labeled in the UI). Future anchor → 0.
+export function allTimeMonths(
+  anchor: string | null | undefined,
+  now = new Date(),
+): number {
+  if (!anchor) return 12;
+  const { y, m } = nyParts(now);
+  const [ay, am] = anchor.split("-").map(Number);
+  return Math.max(0, (y - ay) * 12 + (m - am) + 1);
+}
+
 export interface SubSplit {
   sub: SharedSubscription;
   monthly: number;
@@ -99,10 +112,13 @@ export interface CostReport {
   perProjectMonthly: Map<string, number>;
   categoryMonthly: Map<Category, number>;
   perProjectCategoryMonthly: Map<string, Map<Category, number>>;
-  // ytd is aggregated per item (monthly × that item's ytdMonths), because
-  // billing start varies per cost — a flat factor would overstate it.
+  // ytd and all-time are aggregated per item (monthly × that item's months
+  // billed), because billing start varies per cost — a flat factor would
+  // overstate them.
   perProjectYtd: Map<string, number>;
   categoryYtd: Map<Category, number>;
+  perProjectAllTime: Map<string, number>;
+  categoryAllTime: Map<Category, number>;
   subSplits: SubSplit[];
   totalMonthly: number; // = sum of per-project slices, which sum to the bills by construction
 }
@@ -136,24 +152,31 @@ export function computeCosts(
 
   const perProjectMonthly = new Map<string, number>();
   const perProjectYtd = new Map<string, number>();
+  const perProjectAllTime = new Map<string, number>();
   const perProjectCategoryMonthly = new Map<string, Map<Category, number>>();
   const categoryYtd = new Map<Category, number>();
+  const categoryAllTime = new Map<Category, number>();
   for (const p of projects) {
     perProjectMonthly.set(p.id, 0);
     perProjectYtd.set(p.id, 0);
+    perProjectAllTime.set(p.id, 0);
     perProjectCategoryMonthly.set(p.id, new Map());
   }
   const add = (
     projectId: string,
     category: Category,
     cents: number,
-    months: number,
+    anchor: string | null,
   ) => {
+    const ytd = cents * ytdMonths(anchor, now);
+    const allTime = cents * allTimeMonths(anchor, now);
     perProjectMonthly.set(projectId, (perProjectMonthly.get(projectId) ?? 0) + cents);
-    perProjectYtd.set(projectId, (perProjectYtd.get(projectId) ?? 0) + cents * months);
+    perProjectYtd.set(projectId, (perProjectYtd.get(projectId) ?? 0) + ytd);
+    perProjectAllTime.set(projectId, (perProjectAllTime.get(projectId) ?? 0) + allTime);
     const catMap = perProjectCategoryMonthly.get(projectId)!;
     catMap.set(category, (catMap.get(category) ?? 0) + cents);
-    categoryYtd.set(category, (categoryYtd.get(category) ?? 0) + cents * months);
+    categoryYtd.set(category, (categoryYtd.get(category) ?? 0) + ytd);
+    categoryAllTime.set(category, (categoryAllTime.get(category) ?? 0) + allTime);
   };
 
   for (const p of projects) {
@@ -163,7 +186,7 @@ export function computeCosts(
         p.id,
         svc.category,
         monthlyCents(svc.cost.amountCents, svc.cost.cycle),
-        ytdMonths(svc.renewalDate, now),
+        svc.renewalDate,
       );
     }
   }
@@ -177,13 +200,12 @@ export function computeCosts(
       const pids = [...m.keys()].sort();
       const base = Math.floor(monthly / pids.length);
       let rem = monthly - base * pids.length;
-      // The sub's own anchor drives ytd for every slice — the bill is what
-      // started, not the opt-ins — so slices × months still sum to the bill.
-      const months = ytdMonths(sub.renewalDate, now);
+      // The sub's own anchor drives ytd/all-time for every slice — the bill
+      // is what started, not the opt-ins — so slices × months sum to the bill.
       for (const pid of pids) {
         const cents = base + (rem-- > 0 ? 1 : 0);
         slices.push({ projectId: pid, cents });
-        add(pid, m.get(pid)!, cents, months);
+        add(pid, m.get(pid)!, cents, sub.renewalDate);
       }
     }
     subSplits.push({ sub, monthly, slices });
@@ -205,13 +227,15 @@ export function computeCosts(
     perProjectCategoryMonthly,
     perProjectYtd,
     categoryYtd,
+    perProjectAllTime,
+    categoryAllTime,
     subSplits,
     totalMonthly,
   };
 }
 
-// Window projections for costs, ytd-aware: ytd comes from the per-item
-// aggregation in the report; every other window is a uniform factor.
+// Window projections for costs: ytd and all-time come from the per-item
+// aggregations in the report; daily/monthly/yearly are uniform factors.
 export function projectCostForWindow(
   report: CostReport,
   projectId: string,
@@ -219,6 +243,7 @@ export function projectCostForWindow(
   now = new Date(),
 ): number {
   if (win === "ytd") return report.perProjectYtd.get(projectId) ?? 0;
+  if (win === "all-time") return report.perProjectAllTime.get(projectId) ?? 0;
   return projectMonthlyCost(report.perProjectMonthly.get(projectId) ?? 0, win, now);
 }
 
@@ -229,6 +254,7 @@ export function categoryCostForWindow(
   now = new Date(),
 ): number {
   if (win === "ytd") return report.categoryYtd.get(category) ?? 0;
+  if (win === "all-time") return report.categoryAllTime.get(category) ?? 0;
   return projectMonthlyCost(report.categoryMonthly.get(category) ?? 0, win, now);
 }
 
@@ -246,7 +272,7 @@ export function costNote(win: TimeWindow): string {
     case "daily":
       return `projected rate (monthly ÷ ${DAYS_PER_MONTH})`;
     case "all-time":
-      return "annualized — recurring rates have no all-time total";
+      return "each cost since its billing start (annualized when no date set)";
     case "ytd":
       return "projected per cost from its billing start this year";
     default:
