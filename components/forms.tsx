@@ -16,6 +16,22 @@ export function ErrorBanner({ message }: { message?: string }) {
   return <p className="banner-error">{message}</p>;
 }
 
+export function Linkify({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noreferrer">
+            {part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function ProjectFields({

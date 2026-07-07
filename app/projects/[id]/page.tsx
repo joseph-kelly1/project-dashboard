@@ -13,6 +13,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { ServiceTabs } from "@/components/service-tabs";
 import {
   ErrorBanner,
+  Linkify,
   ProjectFields,
   ServiceFields,
   StatusBadge,
@@ -98,7 +99,11 @@ export default async function ProjectPage({
               </>
             )}
           </h1>
-          {project.notes && <p className="muted">{project.notes}</p>}
+          {project.notes && (
+            <p className="muted">
+              <Linkify text={project.notes} />
+            </p>
+          )}
           <p className="muted">
             {account ? (
               <>
@@ -245,7 +250,9 @@ export default async function ProjectPage({
                     {selected.notes && (
                       <tr>
                         <td className="muted">Notes</td>
-                        <td>{selected.notes}</td>
+                        <td>
+                          <Linkify text={selected.notes} />
+                        </td>
                       </tr>
                     )}
                   </tbody>

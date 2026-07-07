@@ -5,7 +5,7 @@ import {
   updateStripeAccount,
 } from "@/app/actions";
 import { DeleteButton } from "@/components/delete-button";
-import { ErrorBanner } from "@/components/forms";
+import { ErrorBanner, Linkify } from "@/components/forms";
 import { listProjects, listStripeAccounts } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,11 @@ export default async function AccountsPage({
               {linked.length > 1 &&
                 " (shared — every linked project needs a revenue tag)"}
             </p>
-            {account.notes && <p className="muted">{account.notes}</p>}
+            {account.notes && (
+              <p className="muted">
+                <Linkify text={account.notes} />
+              </p>
+            )}
             <details>
               <summary>Edit</summary>
               <form
