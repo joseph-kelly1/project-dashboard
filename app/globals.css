@@ -90,13 +90,6 @@ h3 {
   align-items: center;
   gap: 8px;
 }
-.nav-brand::before {
-  content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 9999px;
-  background: var(--green);
-}
 .nav a {
   color: var(--slate);
   font-size: 14px;
@@ -108,6 +101,17 @@ h3 {
 }
 .nav-spacer {
   flex: 1;
+}
+
+.back {
+  display: inline-block;
+  color: var(--steel);
+  font-size: 20px;
+  line-height: 1;
+}
+.back:hover {
+  color: var(--ink);
+  text-decoration: none;
 }
 
 /* Cards */

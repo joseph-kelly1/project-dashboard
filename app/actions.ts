@@ -246,6 +246,7 @@ export async function createStripeAccount(fd: FormData): Promise<void> {
     await saveStripeAccount({
       id: crypto.randomUUID(),
       label: reqStr(fd.get("label"), "Label"),
+      url: optUrl(fd.get("url"), "Link"),
       encryptedKey: encrypt(secretKey),
       keyHint: keyHint(secretKey),
       notes: optStr(fd.get("notes"), "Notes"),
@@ -262,6 +263,7 @@ export async function updateStripeAccount(fd: FormData): Promise<void> {
     await saveStripeAccount({
       ...existing,
       label: reqStr(fd.get("label"), "Label"),
+      url: optUrl(fd.get("url"), "Link"),
       notes: optStr(fd.get("notes"), "Notes"),
       ...(newKey
         ? { encryptedKey: encrypt(newKey), keyHint: keyHint(newKey) }

@@ -5,6 +5,6 @@ export { auth as middleware } from "@/auth";
 // non-page requests get 401 (Auth.js default behavior).
 export const config = {
   matcher: [
-    "/((?!api/auth|signin|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api/auth|signin|_next/static|_next/image|favicon.ico|icon.svg|logo.svg).*)",
   ],
 };

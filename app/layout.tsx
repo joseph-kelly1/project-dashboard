@@ -23,9 +23,10 @@ export default function RootLayout({
       <body className={jakarta.className}>
         <nav className="nav">
           <Link href="/" className="nav-brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static svg, no optimization needed */}
+            <img src="/logo.svg" alt="" width={22} height={22} />
             Project Ledger
           </Link>
-          <Link href="/">Dashboard</Link>
           <Link href="/subscriptions">Shared subscriptions</Link>
           <Link href="/accounts">Stripe accounts</Link>
           <span className="nav-spacer" />

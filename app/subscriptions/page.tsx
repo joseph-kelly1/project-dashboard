@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   createSubscription,
   removeSubscription,
@@ -28,6 +29,9 @@ export default async function SubscriptionsPage({
   return (
     <main className="page">
       <div>
+        <Link href="/" className="back" aria-label="Back to dashboard">
+          ←
+        </Link>
         <h1>Shared subscriptions</h1>
         <p className="muted">
           Subscriptions whose price is split across the projects that opt in

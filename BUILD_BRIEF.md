@@ -40,7 +40,7 @@ This app is relational data on a flat key-value store, so **you own all the rela
 - `url` — links to this project's own dashboard for that service. **Always project-specific, even when the cost comes from a shared subscription.** The link and the cost are fully decoupled.
 - `loginMethod` — one of `google` | `github` | `other`
 - `loginOther` — free text, used only when `loginMethod === 'other'`
-- `category` — one of `hosting` | `database` | `auth` | `email` | `ai` | `analytics` | `domain` | `other`
+- `category` — one of `hosting` | `database` | `auth` | `email` | `backend` | `ai` | `analytics` | `domain` | `other`
 - `status` — one of `active` | `paused` | `cancelled`. Paused/cancelled services are excluded from all cost totals but stay on record.
 - `renewalDate` — optional ISO date. A service with a shared cost and no own renewal date inherits the subscription's renewal date, derived live at read time (never copied/stored).
 - `cost` — a tagged union:
@@ -57,6 +57,7 @@ This app is relational data on a flat key-value store, so **you own all the rela
 
 **StripeAccount**
 - `id`, `label` (e.g. "Business", "Freelance")
+- `url` — optional link to this account's Stripe dashboard; shown wherever the account is referenced (e.g. a project's header links its associated account)
 - `encryptedKey` — the account's secret key, pasted into the app and stored encrypted (AES-256-GCM, key derived from `ENCRYPTION_SECRET`). Write-only from the UI's perspective: forms accept a new/replacement key; reads return only `keyHint`. Decrypt server-side at Stripe call time only.
 - `keyHint` — last 4 characters of the key, stored at write time for masked display (e.g. `sk_live_…4f2b`)
 - `notes`

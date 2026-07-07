@@ -74,9 +74,9 @@ export default async function ProjectPage({
     <main className="page">
       <div className="row">
         <div className="grow">
-          <p className="muted">
-            <Link href="/">Dashboard</Link> / {project.name}
-          </p>
+          <Link href="/" className="back" aria-label="Back to dashboard">
+            ←
+          </Link>
           <h1>
             {project.name}
             {project.url && (
@@ -95,9 +95,21 @@ export default async function ProjectPage({
           </h1>
           {project.notes && <p className="muted">{project.notes}</p>}
           <p className="muted">
-            {account
-              ? `Revenue from Stripe account “${account.label}”${project.revenueTag ? ` · tag “${project.revenueTag}”` : ""}`
-              : "Revenue not tracked — link a Stripe account to see it here."}
+            {account ? (
+              <>
+                Revenue from Stripe account{" "}
+                {account.url ? (
+                  <a href={account.url} target="_blank" rel="noreferrer">
+                    {account.label} ↗
+                  </a>
+                ) : (
+                  <Link href="/accounts">{account.label}</Link>
+                )}
+                {project.revenueTag ? ` · tag “${project.revenueTag}”` : ""}
+              </>
+            ) : (
+              "Revenue not tracked — link a Stripe account to see it here."
+            )}
           </p>
         </div>
         <WindowSelector current={win} basePath={`/projects/${id}`} params={selected ? { service: selected.id } : {}} />

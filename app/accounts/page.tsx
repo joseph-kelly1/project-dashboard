@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   createStripeAccount,
   removeStripeAccount,
@@ -23,6 +24,9 @@ export default async function AccountsPage({
   return (
     <main className="page">
       <div>
+        <Link href="/" className="back" aria-label="Back to dashboard">
+          ←
+        </Link>
         <h1>Stripe accounts</h1>
         <p className="muted">
           Read-only keys for pulling revenue. Keys are stored encrypted and
@@ -60,6 +64,14 @@ export default async function AccountsPage({
             </div>
             <p className="muted">
               Key {account.keyHint}
+              {account.url && (
+                <>
+                  {" · "}
+                  <a href={account.url} target="_blank" rel="noreferrer">
+                    {account.url.replace(/^https?:\/\//, "").replace(/\/$/, "")} ↗
+                  </a>
+                </>
+              )}
               {" · "}
               {linked.length === 0
                 ? "no projects linked"
@@ -79,6 +91,15 @@ export default async function AccountsPage({
                   <div className="field">
                     <label>Label</label>
                     <input name="label" defaultValue={account.label} required />
+                  </div>
+                  <div className="field">
+                    <label>Link (this account’s Stripe dashboard)</label>
+                    <input
+                      name="url"
+                      type="url"
+                      defaultValue={account.url}
+                      placeholder="https://dashboard.stripe.com/…"
+                    />
                   </div>
                   <div className="field">
                     <label>
@@ -114,6 +135,14 @@ export default async function AccountsPage({
             <div className="field">
               <label>Label</label>
               <input name="label" placeholder="Business" required />
+            </div>
+            <div className="field">
+              <label>Link (this account’s Stripe dashboard, optional)</label>
+              <input
+                name="url"
+                type="url"
+                placeholder="https://dashboard.stripe.com/…"
+              />
             </div>
             <div className="field">
               <label>Secret key (read-only/restricted key recommended)</label>

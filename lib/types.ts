@@ -6,6 +6,7 @@ export type Category =
   | "database"
   | "auth"
   | "email"
+  | "backend"
   | "ai"
   | "analytics"
   | "domain"
@@ -26,6 +27,7 @@ export const CATEGORIES: readonly Category[] = [
   "database",
   "auth",
   "email",
+  "backend",
   "ai",
   "analytics",
   "domain",
@@ -80,6 +82,7 @@ export interface SharedSubscription {
 export interface StripeAccount {
   id: string;
   label: string;
+  url: string; // e.g. that account's Stripe dashboard, "" if unset
   encryptedKey: string; // AES-256-GCM payload, never sent to the client
   keyHint: string; // e.g. "sk_live_…4f2b"
   notes: string;
