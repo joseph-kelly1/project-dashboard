@@ -10,6 +10,7 @@ import type { Note } from "@/lib/types";
 export function NoteBoard({ notes }: { notes: Note[] }) {
   const [order, setOrder] = useState(() => notes.map((note) => note.id));
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [isPending, startTransition] = useTransition();
   const draggedId = useRef<string | null>(null);
@@ -123,10 +124,23 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
           {visibleIds.map((id, index) => {
             const note = byId.get(id);
             if (!note) return null;
+            const isExpanded = expandedId === note.id;
             return (
               <article
-                className="note-card"
+                className={`note-card${isExpanded ? " note-card-expanded" : ""}`}
                 key={note.id}
+                onClick={(event) => {
+                  const target = event.target as HTMLElement;
+                  if (
+                    target.closest(
+                      "button, a, input, textarea, summary, details, form",
+                    ) ||
+                    window.getSelection()?.toString()
+                  ) {
+                    return;
+                  }
+                  setExpandedId(isExpanded ? null : note.id);
+                }}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();
@@ -155,7 +169,20 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                   >
                     <span aria-hidden="true">⠿</span>
                   </button>
-                  <h2>{note.title}</h2>
+                  <h2>
+                    <button
+                      className="note-title-button"
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? "Collapse" : "Expand"} ${note.title}`}
+                      onClick={() => setExpandedId(isExpanded ? null : note.id)}
+                    >
+                      <span>{note.title}</span>
+                      <span className="note-expand-label" aria-hidden="true">
+                        {isExpanded ? "Collapse" : "Read"}
+                      </span>
+                    </button>
+                  </h2>
                   <div className="note-move-controls">
                     <button
                       type="button"

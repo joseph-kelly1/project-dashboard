@@ -451,6 +451,12 @@ details > .details-body {
   min-width: 0;
   transition: border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
     box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: zoom-in;
+}
+.note-card-expanded {
+  grid-column: 1 / -1;
+  cursor: zoom-out;
+  padding: 24px;
 }
 .note-card:has(.note-drag-handle:active) {
   border-color: var(--green-dark);
@@ -468,6 +474,39 @@ details > .details-body {
   line-height: 1.35;
   overflow-wrap: anywhere;
   margin: 1px 0 0;
+}
+.note-title-button {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: zoom-in;
+  display: flex;
+  font: inherit;
+  gap: 8px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+.note-title-button > span:first-child {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.note-card-expanded .note-title-button {
+  cursor: zoom-out;
+}
+.note-card-expanded .note-title-button > span:first-child {
+  display: block;
+}
+.note-expand-label {
+  color: var(--green-dark);
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .note-drag-handle,
 .note-move-controls button {
@@ -509,6 +548,11 @@ details > .details-body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  max-height: 54px;
+  overflow: hidden;
+}
+.note-card-expanded .note-tags {
+  max-height: none;
 }
 .note-tag {
   background: var(--surface-soft);
@@ -533,6 +577,15 @@ details > .details-body {
   max-width: 70ch;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+}
+.note-card-expanded .note-body {
+  display: block;
+  max-width: 85ch;
+  overflow: visible;
 }
 .note-body-empty {
   color: var(--stone);
