@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { removeNote, reorderNotes, updateNote } from "@/app/actions";
 import { DeleteButton } from "@/components/delete-button";
 import { Linkify } from "@/components/forms";
-import { NoteFields } from "@/components/note-fields";
 import type { Note } from "@/lib/types";
 
 export function NoteBoard({ notes }: { notes: Note[] }) {
   const [order, setOrder] = useState(() => notes.map((note) => note.id));
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [isPending, startTransition] = useTransition();
   const draggedId = useRef<string | null>(null);
@@ -38,6 +38,15 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
       setSelectedTag(null);
     }
   }, [selectedTag, tagKeys]);
+
+  useEffect(() => {
+    if (!editingId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [editingId]);
 
   const visibleIds = order.filter((id) => {
     if (!selectedTag) return true;
@@ -75,6 +84,13 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
     if (!target) return;
     const next = reorderedVisible(id, target);
     if (next) persist(next, id);
+  }
+
+  function closeEditor(id: string) {
+    setEditingId(null);
+    requestAnimationFrame(() => {
+      document.getElementById(`edit-note-${id}`)?.focus();
+    });
   }
 
   return (
@@ -125,11 +141,16 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
             const note = byId.get(id);
             if (!note) return null;
             const isExpanded = expandedId === note.id;
+            const isEditing = editingId === note.id;
             return (
               <article
-                className={`note-card${isExpanded ? " note-card-expanded" : ""}`}
+                className={`note-card${isExpanded ? " note-card-expanded" : ""}${isEditing ? " note-card-editing" : ""}`}
                 key={note.id}
+                role={isEditing ? "dialog" : undefined}
+                aria-modal={isEditing ? true : undefined}
+                aria-label={isEditing ? `Editing ${note.title}` : undefined}
                 onClick={(event) => {
+                  if (isEditing) return;
                   const target = event.target as HTMLElement;
                   if (
                     target.closest(
@@ -143,6 +164,7 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                 }}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => {
+                  if (isEditing) return;
                   event.preventDefault();
                   const fromId = draggedId.current;
                   draggedId.current = null;
@@ -151,7 +173,100 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                   if (next) persist(next, fromId);
                 }}
               >
-                <div className="note-card-head">
+                {isEditing ? (
+                  <form
+                    action={updateNote}
+                    className="note-inline-editor"
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        closeEditor(note.id);
+                        return;
+                      }
+                      if (event.key === "Tab") {
+                        const focusable = Array.from(
+                          event.currentTarget.querySelectorAll<HTMLElement>(
+                            "input:not([disabled]), textarea:not([disabled]), button:not([disabled])",
+                          ),
+                        );
+                        const first = focusable[0];
+                        const last = focusable.at(-1);
+                        if (
+                          first &&
+                          last &&
+                          ((event.shiftKey && document.activeElement === first) ||
+                            (!event.shiftKey && document.activeElement === last))
+                        ) {
+                          event.preventDefault();
+                          (event.shiftKey ? last : first).focus();
+                        }
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="id" value={note.id} />
+                    <header className="note-editor-head">
+                      <div className="note-editor-title-wrap">
+                        <label
+                          className="sr-only"
+                          htmlFor={`note-title-${note.id}`}
+                        >
+                          Title
+                        </label>
+                        <input
+                          id={`note-title-${note.id}`}
+                          className="note-editor-title"
+                          name="title"
+                          defaultValue={note.title}
+                          maxLength={120}
+                          autoFocus
+                          required
+                        />
+                      </div>
+                      <div className="note-editor-actions">
+                        <button className="btn" type="submit">
+                          Save note
+                        </button>
+                        <button
+                          className="btn-outline"
+                          type="button"
+                          onClick={() => closeEditor(note.id)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </header>
+                    <div className="note-editor-tags">
+                      <label htmlFor={`note-tags-${note.id}`}>Tags</label>
+                      <input
+                        id={`note-tags-${note.id}`}
+                        name="tags"
+                        defaultValue={note.tags.join(", ")}
+                        maxLength={500}
+                        placeholder="Idea, launch, follow-up"
+                      />
+                      <span>Separate tags with commas</span>
+                    </div>
+                    <div className="note-editor-body-wrap">
+                      <label
+                        className="sr-only"
+                        htmlFor={`note-body-${note.id}`}
+                      >
+                        Note
+                      </label>
+                      <textarea
+                        id={`note-body-${note.id}`}
+                        className="note-editor-body"
+                        name="body"
+                        defaultValue={note.body}
+                        maxLength={10_000}
+                        placeholder="Write anything you want to keep handy…"
+                      />
+                    </div>
+                    <p className="note-editor-hint">Press Esc to cancel</p>
+                  </form>
+                ) : (
+                  <>
+                    <div className="note-card-head">
                   <button
                     className="note-drag-handle"
                     type="button"
@@ -229,18 +344,17 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                 )}
 
                 <div className="note-card-actions">
-                  <details>
-                    <summary>Edit</summary>
-                    <form action={updateNote} className="stack details-body">
-                      <input type="hidden" name="id" value={note.id} />
-                      <NoteFields note={note} />
-                      <div>
-                        <button className="btn" type="submit">
-                          Save note
-                        </button>
-                      </div>
-                    </form>
-                  </details>
+                  <button
+                    id={`edit-note-${note.id}`}
+                    className="btn-outline"
+                    type="button"
+                    onClick={() => {
+                      setExpandedId(note.id);
+                      setEditingId(note.id);
+                    }}
+                  >
+                    Edit
+                  </button>
                   <form action={removeNote}>
                     <input type="hidden" name="id" value={note.id} />
                     <DeleteButton
@@ -249,6 +363,8 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                     />
                   </form>
                 </div>
+                  </>
+                )}
               </article>
             );
           })}
