@@ -64,6 +64,12 @@ This app is relational data on a flat key-value store, so **you own all the rela
 - `keyHint` — last 4 characters of the key, stored at write time for masked display (e.g. `sk_live_…4f2b`)
 - `notes`
 
+**Note**
+- `id`, `title`, `body`
+- `tags` — user-defined labels entered as a comma-separated list and used to filter the board
+- `sortOrder` — integer board position; notes can be reordered with drag and drop or keyboard-accessible move controls
+- `createdAt`, `updatedAt`
+
 ### Suggested key scheme
 ```
 project:<id>            -> Project JSON
@@ -74,6 +80,8 @@ index:projects          -> set of project ids
 index:subscriptions     -> set of subscription ids
 index:stripeAccounts    -> set of stripe account ids
 project:<id>:services   -> set of service ids for that project
+note:<id>               -> Note JSON
+index:notes             -> set of note ids
 ```
 Data volume is tiny (a few projects, dozens of services). Loading everything into memory in a server route and computing there is fine and preferred over clever Redis-side logic.
 
@@ -149,11 +157,12 @@ All math is in integer cents (see above); format to dollars at render.
 
 ## Screens
 
-Follow `DESIGN.md` for layout and styling. Functionally, three areas:
+Follow `DESIGN.md` for layout and styling. Functionally, four areas:
 
 1. **Home dashboard** — the time-window selector (drives everything on the page); global metric cards for total cost, total revenue, total profit; a per-project profit list/table; a spend-by-category breakdown; and a section for shared subscriptions showing each one's current per-project split live. Surface anything renewing in the next 30 days, plus project reminders due within 30 days or overdue, in one "coming up" table.
 2. **Project view** — project header with its own cost/revenue/profit for the selected window; service tabs, each showing the full service record (name, project-specific link, login method, category, status, billing cycle, renewal date, cost source, notes). CRUD for services here. A reminders section: dated notes (secret expiry, domain transfer…) with add/remove; overdue ones flagged until removed.
 3. **Shared subscriptions / general page** — CRUD for shared subscriptions; each shows which projects currently opt into it and the resulting per-project slice.
+4. **Notes board** — create, edit, and delete titled text notes; arrange them in a responsive grid with persistent drag reordering and keyboard move controls; add custom tags and filter the board by tag.
 
 Also need lightweight CRUD for **projects** and for **Stripe accounts** (accounts: label + secret key pasted directly into the form; afterwards the key shows only as its masked hint, replaceable but never re-displayed). Sentence case, plain-language labels per `DESIGN.md`.
 

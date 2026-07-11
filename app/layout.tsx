@@ -27,6 +27,7 @@ export default function RootLayout({
             <img src="/logo.svg" alt="" width={22} height={22} />
             Project Ledger
           </Link>
+          <Link href="/notes">Notes</Link>
           <Link href="/subscriptions">Shared subscriptions</Link>
           <Link href="/accounts">Stripe accounts</Link>
           <span className="nav-spacer" />

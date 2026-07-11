@@ -96,3 +96,13 @@ export interface StripeAccount {
   keyHint: string; // e.g. "sk_live_…4f2b"
   notes: string;
 }
+
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}

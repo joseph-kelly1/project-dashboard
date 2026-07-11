@@ -5,17 +5,21 @@ import { redirect } from "next/navigation";
 import { auth, signIn, signOut } from "@/auth";
 import { encrypt, keyHint } from "@/lib/crypto";
 import {
+  deleteNote,
   deleteProjectCascade,
   deleteService,
   deleteStripeAccount,
   deleteSubscription,
+  getNote,
   getProject,
   getService,
   getStripeAccount,
   getSubscription,
+  listNotes,
   listProjects,
   listServices,
   loadAll,
+  saveNote,
   saveProject,
   saveService,
   saveStripeAccount,
@@ -241,6 +245,77 @@ export async function removeService(fd: FormData): Promise<void> {
   await run(returnPath, async () => {
     if (existing) await deleteService(existing);
   });
+}
+
+function tagsFromForm(fd: FormData): string[] {
+  const raw = optStr(fd.get("tags"), "Tags", 500);
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const value of raw.split(",")) {
+    const tag = value.trim();
+    if (!tag) continue;
+    if (tag.length > 40)
+      throw new ValidationError("Each tag must be 40 characters or fewer");
+    const key = tag.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      tags.push(tag);
+    }
+  }
+  if (tags.length > 12)
+    throw new ValidationError("A note can have up to 12 tags");
+  return tags;
+}
+
+export async function createNote(fd: FormData): Promise<void> {
+  await run("/notes", async () => {
+    const notes = await listNotes();
+    const now = new Date().toISOString();
+    await saveNote({
+      id: crypto.randomUUID(),
+      title: reqStr(fd.get("title"), "Title", 120),
+      body: optStr(fd.get("body"), "Note", 10_000),
+      tags: tagsFromForm(fd),
+      sortOrder:
+        notes.reduce((max, note) => Math.max(max, note.sortOrder ?? 0), -1) + 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+}
+
+export async function updateNote(fd: FormData): Promise<void> {
+  await run("/notes", async () => {
+    const id = reqStr(fd.get("id"), "Note id", 100);
+    const existing = await getNote(id);
+    if (!existing) throw new ValidationError("Note not found");
+    await saveNote({
+      ...existing,
+      title: reqStr(fd.get("title"), "Title", 120),
+      body: optStr(fd.get("body"), "Note", 10_000),
+      tags: tagsFromForm(fd),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+export async function removeNote(fd: FormData): Promise<void> {
+  await run("/notes", async () => {
+    await deleteNote(reqStr(fd.get("id"), "Note id", 100));
+  });
+}
+
+export async function reorderNotes(orderedIds: string[]): Promise<void> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  const notes = await listNotes();
+  const byId = new Map(notes.map((note) => [note.id, note]));
+  let index = 0;
+  for (const id of orderedIds) {
+    const note = byId.get(id);
+    if (note) await saveNote({ ...note, sortOrder: index++ });
+  }
+  revalidatePath("/notes");
 }
 
 function subscriptionFromForm(fd: FormData, id: string) {

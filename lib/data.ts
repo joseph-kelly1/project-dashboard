@@ -1,5 +1,6 @@
 import { redis } from "./redis";
 import type {
+  Note,
   Project,
   Service,
   SharedSubscription,
@@ -15,6 +16,8 @@ import type {
 //   index:subscriptions     set of subscription ids
 //   index:stripeAccounts    set of stripe account ids
 //   project:<id>:services   set of service ids
+//   note:<id>               Note JSON
+//   index:notes             set of note ids
 // Redis enforces nothing; every relationship rule lives in actions.ts.
 
 async function mgetJson<T>(keys: string[]): Promise<T[]> {
@@ -118,6 +121,30 @@ export async function saveStripeAccount(a: StripeAccount): Promise<void> {
 export async function deleteStripeAccount(id: string): Promise<void> {
   await redis().del(`stripeAccount:${id}`);
   await redis().srem("index:stripeAccounts", id);
+}
+
+export async function listNotes(): Promise<Note[]> {
+  const ids = await redis().smembers("index:notes");
+  const notes = await mgetJson<Note>(ids.map((id) => `note:${id}`));
+  return notes.sort(
+    (a, b) =>
+      (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+      a.createdAt.localeCompare(b.createdAt),
+  );
+}
+
+export async function getNote(id: string): Promise<Note | null> {
+  return redis().get<Note>(`note:${id}`);
+}
+
+export async function saveNote(note: Note): Promise<void> {
+  await redis().set(`note:${note.id}`, note);
+  await redis().sadd("index:notes", note.id);
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await redis().del(`note:${id}`);
+  await redis().srem("index:notes", id);
 }
 
 export interface AllData {
