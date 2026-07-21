@@ -11,9 +11,11 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [isPending, startTransition] = useTransition();
   const draggedId = useRef<string | null>(null);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const serverIds = notes.map((note) => note.id).join(",");
 
   useEffect(() => {
@@ -47,6 +49,13 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
       document.body.style.overflow = previousOverflow;
     };
   }, [editingId]);
+
+  useEffect(
+    () => () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    },
+    [],
+  );
 
   const visibleIds = order.filter((id) => {
     if (!selectedTag) return true;
@@ -91,6 +100,19 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
     requestAnimationFrame(() => {
       document.getElementById(`edit-note-${id}`)?.focus();
     });
+  }
+
+  async function copyBody(note: Note) {
+    try {
+      await navigator.clipboard.writeText(note.body);
+      setCopiedId(note.id);
+      setAnnouncement(`${note.title} copied to clipboard.`);
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setCopiedId(null), 2_000);
+    } catch {
+      setCopiedId(null);
+      setAnnouncement(`Could not copy ${note.title} to clipboard.`);
+    }
   }
 
   return (
@@ -344,17 +366,27 @@ export function NoteBoard({ notes }: { notes: Note[] }) {
                 )}
 
                 <div className="note-card-actions">
-                  <button
-                    id={`edit-note-${note.id}`}
-                    className="btn-outline"
-                    type="button"
-                    onClick={() => {
-                      setExpandedId(note.id);
-                      setEditingId(note.id);
-                    }}
-                  >
-                    Edit
-                  </button>
+                  <div className="note-card-action-group">
+                    <button
+                      className="btn-outline"
+                      type="button"
+                      disabled={!note.body}
+                      onClick={() => copyBody(note)}
+                    >
+                      {copiedId === note.id ? "Copied" : "Copy"}
+                    </button>
+                    <button
+                      id={`edit-note-${note.id}`}
+                      className="btn-outline"
+                      type="button"
+                      onClick={() => {
+                        setExpandedId(note.id);
+                        setEditingId(note.id);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
                   <form action={removeNote}>
                     <input type="hidden" name="id" value={note.id} />
                     <DeleteButton

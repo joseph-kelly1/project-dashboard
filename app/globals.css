@@ -613,6 +613,17 @@ details > .details-body {
 .note-card-actions .btn-outline {
   min-height: 36px;
 }
+.note-card-actions .btn-outline:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.note-card-actions .btn-outline:disabled:hover {
+  background: transparent;
+}
+.note-card-action-group {
+  display: flex;
+  gap: 8px;
+}
 .note-inline-editor {
   width: min(1100px, 100%);
   min-height: 100%;
