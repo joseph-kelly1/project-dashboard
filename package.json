@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx lib/money.test.ts"
+    "test": "tsx src/lib/money.test.ts"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.0",

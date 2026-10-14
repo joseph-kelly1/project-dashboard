@@ -88,7 +88,7 @@ Open [localhost:3000](http://localhost:3000) and sign in with the GitHub account
 
 If local development uses your production Redis credentials, local edits affect production data. Use a separate Redis database for an isolated development environment.
 
-See [SETUP.md](SETUP.md) for the complete OAuth, Upstash, Vercel, and Stripe setup checklist. Production OAuth uses `https://<your-domain>/api/auth/callback/github`; register a separate OAuth app for local development.
+See [setup guide](docs/SETUP.md) for the complete OAuth, Upstash, Vercel, and Stripe setup checklist. Production OAuth uses `https://<your-domain>/api/auth/callback/github`; register a separate OAuth app for local development.
 
 ## Commands
 
@@ -110,13 +110,16 @@ Keep `.env.local` out of version control and preserve `ENCRYPTION_SECRET`. Chang
 ## Project structure
 
 ```text
-app/                  Pages, auth route, server actions, and CSS
-components/           Forms, selectors, service tabs, and notes board
-lib/                  Data access, money calculations, Stripe, and encryption
-auth.ts               GitHub provider and single-user sign-in rule
-middleware.ts         Session gate for protected routes
+src/
+  app/                Pages, auth route, server actions, and CSS
+  components/         Forms, selectors, service tabs, and notes board
+  lib/                Data access, money calculations, Stripe, and encryption
+  auth.ts             GitHub provider and single-user sign-in rule
+  middleware.ts       Session gate for protected routes
+docs/                 Functional spec, design guidance, and setup checklist
+public/               Logo and other static assets
 ```
 
-- [BUILD_BRIEF.md](BUILD_BRIEF.md): Functional specification and calculation rules.
-- [SETUP.md](SETUP.md): Deployment and configuration walkthrough.
-- [DESIGN.md](DESIGN.md): Design tokens and core component guidance.
+- [Functional specification](docs/BUILD_BRIEF.md): Features, data model, and calculation rules.
+- [Setup guide](docs/SETUP.md): Deployment and configuration walkthrough.
+- [Design reference](docs/DESIGN.md): Design tokens and core component guidance.

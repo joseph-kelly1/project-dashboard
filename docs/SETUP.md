@@ -1,14 +1,13 @@
-# Setup checklist — Project Ledger
+# Setup checklist: Project Ledger
 
-Follow in order. After step 6 you never touch env vars or code again —
-projects, services, subscriptions, and Stripe accounts (including their keys)
+Follow in order. After step 6 you never touch env vars or code again; projects, services, subscriptions, and Stripe accounts (including their keys)
 are all managed inside the app.
 
 ## 1. Create the Vercel project
 
 1. Push this repo to GitHub.
 2. In Vercel: **Add New → Project**, import the repo. Framework preset:
-   Next.js (auto-detected). Deploy once — it will build but the app won't
+   Next.js (auto-detected). Deploy once; it will build but the app won't
    work until the env vars below exist. Note your production URL
    (e.g. `https://project-ledger.vercel.app`).
 
@@ -17,7 +16,7 @@ are all managed inside the app.
 1. In the Vercel project: **Storage → Create Database → Upstash (Marketplace)
    → Redis**, any region near you, free tier is plenty.
 2. Connect it to the project. This auto-injects `KV_REST_API_URL` and
-   `KV_REST_API_TOKEN` — you never paste these by hand.
+   `KV_REST_API_TOKEN`; you never paste these by hand.
 3. For local dev: copy both values from the Upstash console (REST API
    section) into `.env.local`.
 
@@ -38,8 +37,7 @@ are all managed inside the app.
 
 ## 4. Find your numeric GitHub ID
 
-Sign-in is locked to one GitHub account, matched by **numeric user ID** —
-not username, because usernames can be changed or released and reclaimed by
+Sign-in is locked to one GitHub account, matched by **numeric user ID**; not username, because usernames can be changed or released and reclaimed by
 someone else. The numeric ID is permanent for the life of the account.
 
 Any of these gets you the number:
@@ -62,12 +60,12 @@ Any of these gets you the number:
   account).
 
 - **Avatar URL:** on any GitHub page while signed in, your avatar image URL
-  looks like `https://avatars.githubusercontent.com/u/4830382?v=4` — the
+  looks like `https://avatars.githubusercontent.com/u/4830382?v=4`; the
   number after `/u/` is your ID.
 
 Set `ALLOWED_GITHUB_ID` to exactly that number (digits only, no quotes).
 The `signIn` callback compares it to the ID GitHub returns during OAuth and
-refuses to create a session for anything else — other users see a failed
+refuses to create a session for anything else; other users see a failed
 sign-in, never the app.
 
 Double-check the value: if it's wrong (or empty), **nobody** can sign in,
@@ -82,21 +80,21 @@ your password manager before pasting them anywhere:
 
 ```bash
 openssl rand -base64 32   # → AUTH_SECRET
-openssl rand -base64 32   # → ENCRYPTION_SECRET  (run it a second time — do NOT reuse the same value)
+openssl rand -base64 32   # → ENCRYPTION_SECRET  (run it a second time; do NOT reuse the same value)
 ```
 
 Each prints a 44-character random string like
 `Xk3jP9mQ2vL8nR5tYw7zA1bC4dE6fG0hI2jK4lM6nO8=`. They have different jobs:
 
-- **`AUTH_SECRET`** — signs/encrypts your session cookie (Auth.js). If it
+- **`AUTH_SECRET`**; signs/encrypts your session cookie (Auth.js). If it
   leaks, someone could forge a session; if you rotate it, you just get
   signed out and sign back in. Low-stakes to rotate.
-- **`ENCRYPTION_SECRET`** — encrypts the Stripe secret keys you save in the
+- **`ENCRYPTION_SECRET`**; encrypts the Stripe secret keys you save in the
   app (AES-256-GCM) before they're written to Redis. If you rotate or lose
   it, every stored Stripe key becomes permanently undecryptable and the app
   will show each account's revenue as "unavailable" until you re-paste the
-  keys in **Stripe accounts → Edit**. Data isn't lost — only the keys need
-  re-entering — but treat this one as precious.
+  keys in **Stripe accounts → Edit**. Data isn't lost; only the keys need
+  re-entering; but treat this one as precious.
 
 (No `openssl`? Equivalent: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.)
 
@@ -105,7 +103,7 @@ Each prints a 44-character random string like
 Vercel dashboard → your project → **Settings** (top tab) → **Environment
 Variables** (left sidebar). For each variable below: paste the **Key** and
 **Value**, tick **Production** (also tick Preview/Development only if you'll
-use Vercel preview deploys — local dev uses `.env.local` instead), then
+use Vercel preview deploys; local dev uses `.env.local` instead), then
 **Save**.
 
 | Key | Value | Where it came from |
@@ -116,7 +114,7 @@ use Vercel preview deploys — local dev uses `.env.local` instead), then
 | `ALLOWED_GITHUB_ID` | your numeric ID, digits only (e.g. `4830382`) | step 4 |
 | `ENCRYPTION_SECRET` | second generated string | step 5a |
 
-Do **not** add `KV_REST_API_URL` / `KV_REST_API_TOKEN` by hand — the Upstash
+Do **not** add `KV_REST_API_URL` / `KV_REST_API_TOKEN` by hand; the Upstash
 Marketplace integration from step 2 injects them automatically (you'll see
 them already listed on this same page, managed by the integration).
 
@@ -125,17 +123,17 @@ URL by itself.
 
 Pitfalls:
 
-- Env vars only apply to deployments made **after** saving them — step 6
+- Env vars only apply to deployments made **after** saving them; step 6
   (redeploy) is mandatory, not optional.
 - No quotes around values; Vercel stores the raw string. A trailing space
   or newline pasted by accident will break auth in confusing ways.
 - If the GitHub client secret is lost, generate a new one in the OAuth app
-  and update `AUTH_GITHUB_SECRET` — the old one stops working immediately.
+  and update `AUTH_GITHUB_SECRET`; the old one stops working immediately.
 
 ### 5c. Local development (`.env.local`)
 
 For running `npm run dev` locally, create `.env.local` in the repo root
-(never committed — it's gitignored):
+(never committed; it's gitignored):
 
 ```bash
 cp .env.example .env.local
@@ -143,34 +141,34 @@ cp .env.example .env.local
 
 Then fill in every value:
 
-- `KV_REST_API_URL` / `KV_REST_API_TOKEN` — Upstash console → your database
+- `KV_REST_API_URL` / `KV_REST_API_TOKEN`; Upstash console → your database
   → **REST API** section → copy `UPSTASH_REDIS_REST_URL` and
   `UPSTASH_REDIS_REST_TOKEN` values. Note: local dev talks to the **same
-  Redis** as production — there is no separate staging store. Fine for a
+  Redis** as production; there is no separate staging store. Fine for a
   personal tool; just remember edits made locally are real.
-- `AUTH_SECRET` / `ENCRYPTION_SECRET` — reuse the same values as production
+- `AUTH_SECRET` / `ENCRYPTION_SECRET`; reuse the same values as production
   (required for `ENCRYPTION_SECRET`, or locally-saved Stripe keys and
   production-saved ones can't decrypt each other's data).
-- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — from the **second** OAuth app
+- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`; from the **second** OAuth app
   (the localhost one, step 3.5), not the production app.
-- `ALLOWED_GITHUB_ID` — same number as production.
-- `AUTH_URL=http://localhost:3000` — add this line only if local sign-in
+- `ALLOWED_GITHUB_ID`; same number as production.
+- `AUTH_URL=http://localhost:3000`; add this line only if local sign-in
   redirects misbehave; usually unnecessary.
 
 This is the complete, permanent set. Adding Stripe accounts later requires
-**no** new env vars — keys go in through the app UI.
+**no** new env vars; keys go in through the app UI.
 
 ## 6. Redeploy
 
-Trigger a redeploy so the env vars take effect. Sign in with GitHub — any
+Trigger a redeploy so the env vars take effect. Sign in with GitHub; any
 other GitHub identity is rejected with no session.
 
 ## 7. (Optional, in-app) Add Stripe accounts
 
-1. In Stripe: **Developers → API keys → Create restricted key** — read
+1. In Stripe: **Developers → API keys → Create restricted key**; read
    access to Charges and PaymentIntents is enough. A restricted (`rk_…`)
    key is safer than the full secret key; either works.
-2. In the app: **Stripe accounts → Add a Stripe account** — label + paste
+2. In the app: **Stripe accounts → Add a Stripe account**; label + paste
    the key. It is encrypted before storage and never displayed again (only
    a masked hint like `rk_live_…4f2b`).
 3. Link projects to the account on the dashboard or the project's settings.
@@ -194,14 +192,14 @@ Only needed when **two or more projects share one Stripe account**:
   ```
 
 - Payments matching no project's tag appear on the dashboard as one
-  "unattributed" line — in total revenue, assigned to no project.
+  "unattributed" line; in total revenue, assigned to no project.
 - A project that is the **only** one on its account needs no tag; the whole
   account's revenue is its.
 
 ## 9. Things only you can do by hand
 
 - Keep `ENCRYPTION_SECRET` and `AUTH_SECRET` backed up (password manager).
-- Tag payments going forward (step 8) — the app cannot retro-tag old
+- Tag payments going forward (step 8); the app cannot retro-tag old
   payments; untagged history shows as unattributed.
 - If you add a custom domain later, update the GitHub OAuth app's homepage
   and callback URLs to match.
